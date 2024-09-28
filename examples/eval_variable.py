@@ -27,6 +27,7 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import time
 import tqdm
 import argparse
 import math
@@ -287,8 +288,10 @@ def main(argv):
     if args.cuda and torch.cuda.device_count() > 1:
         net = CustomDataParallel(net)
     
-    
+    start = time.time()
     _ = test_epoch(-1, kodak_dataloader, net, rdcriterion, Metrics(),'kodak')
+    end = time.time()
+    print("Average inference time: ", (end - start) / len(kodak_dataloader))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
