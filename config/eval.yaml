@@ -1,7 +1,7 @@
 model: "tic_promptmodel"
 dataset: "coco"
 dataset_path: '/path/to/COCO/dataset'
-kodak_path: '/path/to/kodak/dataset'
+kodak_path: '/kaggle/working/Transformer_VariableROI/raw_images'
 input_resolution: 256
 epochs: 100
 steps: 1200
@@ -19,8 +19,8 @@ clip_max_norm: 1.0
 name: "NAME"
 exp_name: "NAME"
 seed: 42
-root: "/root/path"
-checkpoint: "/path/to/checkpoint"
+root: "/kaggle/working/Transformer_VariableROI"
+checkpoint: "/kaggle/input/transformervariableroi/pytorch/default/1/transformer_variablerate_roi.pth.tar"
 LOCATION: 'prepend'
 DEEP: True
 NUM_TOKENS: 16
