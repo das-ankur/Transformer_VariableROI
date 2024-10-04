@@ -224,9 +224,9 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
 
                     total_time += (end - start)  # Accumulate total inference time
                     total_inferences += 1  # Increase inference count
-                    print(out_net)
+                    print(out_net['x_hat'].shape)
                     exit(1)
-                    
+
                     # Save generated images
                     for idx in range(codecinput.shape[0]):  # Loop through the batch
                         generated_image = out_net['x_hat'][idx].cpu().numpy()  # Get generated image and move to CPU
