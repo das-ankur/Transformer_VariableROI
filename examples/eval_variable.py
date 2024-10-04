@@ -183,6 +183,7 @@ from PIL import Image  # Import the PIL library for saving images
 import time
 
 def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test'):
+    image_count = 0
     model.eval()
     device = next(model.parameters()).device
     lambda_list = [0.0018, 0.0035, 0.0067, 0.013, 0.025, 0.0483, 0.0932]
@@ -230,20 +231,9 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     gen_img = gen_img.to(torch.int).cpu().numpy()
                     gen_img = gen_img.astype(np.uint8)
                     gen_img = Image.fromarray(gen_img)
-                    gen_img.save(os.path.join('compressed_images/000.png'))
-                    exit(1)
-
-                    # Save generated images
-                    for idx in range(codecinput.shape[0]):  # Loop through the batch
-                        generated_image = out_net['x_hat'][idx].cpu().numpy()  # Get generated image and move to CPU
-                        generated_image = np.clip(generated_image, 0, 1)  # Ensure the values are between 0 and 1
-                        generated_image = (generated_image * 255).astype(np.uint8)  # Convert to uint8 format if necessary
-                        img = Image.fromarray(generated_image)  # Create a PIL Image
-
-                        # Construct a filename, ensuring unique names
-                        img_filename = f"{output_dir}/epoch_{epoch}_alpha_{alpha}_lambda_{lmbda}_image_{total_inferences}.png"
-                        img.save(img_filename)  # Save the image
-
+                    gen_img.save(os.path.join(f'compressed_images/{image_count}.png'))
+                    image_count += 1
+                    
                     # Calculate losses
                     out_rd = criterion_rd(out_net, codecinput, roimask_binary, torch.tensor([[lmbda] * codecinput.shape[0]]).to(device))
                     out_criterion = metrics(out_net, codecinput, roimask_binary)
@@ -340,13 +330,6 @@ def parse_args(argv):
     return args
 
 
-class SortedImageFolder(ImageFolder):
-    def __init__(self, root, transform=None):
-        super(SortedImageFolder, self).__init__(root, transform)
-        # Sort the images
-        self.imgs = sorted(self.imgs, key=lambda x: os.path.basename(x[0]))
-
-
 def main(argv):
     args = parse_args(argv)
     base_dir = init(args)
@@ -365,23 +348,9 @@ def main(argv):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
-    class SortedImageFolder(ImageFolder):
-        def __init__(self, root, transform=None):
-            super(SortedImageFolder, self).__init__(root, transform)
-            # Sort images by filename
-            self.imgs = sorted(self.imgs, key=lambda x: os.path.basename(x[0]))
-            self.samples = self.imgs
+    kodak_dataset = ImageFolder(args.kodak_path, split='', transform=transforms.ToTensor()) 
+    kodak_dataloader = DataLoader(kodak_dataset,batch_size=1,num_workers=args.num_workers,shuffle=False,pin_memory=(device == "cuda"),)
 
-    # Now use SortedImageFolder instead of ImageFolder
-    kodak_dataset = SortedImageFolder(args.kodak_path, transform=transforms.ToTensor())
-    kodak_dataloader = DataLoader(
-        kodak_dataset, 
-        batch_size=1, 
-        num_workers=args.num_workers, 
-        shuffle=False, 
-        pin_memory=(device == "cuda")
-    )
-        
     net = image_models[args.model](quality=int(args.quality_level), prompt_config=args)
     net = net.to(device)
 
