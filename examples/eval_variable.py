@@ -224,7 +224,7 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
 
                     total_time += (end - start)  # Accumulate total inference time
                     total_inferences += 1  # Increase inference count
-                    print(out_net['x_hat'].shape)
+                    print(out_net['x_hat'][0].shape)
                     exit(1)
 
                     # Save generated images
