@@ -174,11 +174,24 @@ def setup_logger(log_dir):
 
     logging.info('Logging file is %s' % log_dir)
 
-def test_epoch(epoch, test_dataloader, model, criterion_rd, metircs, stage='test'):
+
+import os
+import numpy as np
+import torch
+import tqdm  # Ensure tqdm is imported for progress bar
+from PIL import Image  # Import the PIL library for saving images
+import time
+
+def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test'):
     model.eval()
     device = next(model.parameters()).device
     lambda_list = [0.0018, 0.0035, 0.0067, 0.013, 0.025, 0.0483, 0.0932]
     alphas = [1]
+    total_time = 0
+    total_inferences = 0  # Initialize count of inferences
+    
+    output_dir = "generated_images"  # Directory to save generated images
+    os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
 
     for an, alpha in enumerate(alphas):
         loss_am_mean = AverageMeter()
@@ -190,18 +203,42 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metircs, stage='test
                 roipsnr = AverageMeter()
                 nroipsnr = AverageMeter()
                 totalloss = AverageMeter()
-                for i, d in tqdm.tqdm(enumerate(test_dataloader),leave=False, total=len(test_dataloader.dataset)//test_dataloader.batch_size):
+
+                for i, d in tqdm.tqdm(enumerate(test_dataloader), leave=False, total=len(test_dataloader.dataset) // test_dataloader.batch_size):
+                    start = time.time()  # Start the timer
+
+                    # Prepare your input and masks
                     codecinput = d.to(device)
                     roimask = torch.ones(codecinput.shape[0], codecinput.shape[2], codecinput.shape[3])
                     roimask_binary = roimask.unsqueeze(1).to(device)
-                    roimask = (1-roimask_binary)*alpha + roimask_binary
-                    lmbda_norm = (np.log(lmbda)-min(np.log(lambda_list)))/(max(np.log(lambda_list))-min(np.log(lambda_list)))
-                    mask  = torch.zeros(codecinput.shape[0], 1, codecinput.shape[2], codecinput.shape[3], device=device).fill_(lmbda_norm)
-                    mask_decoder = mask[:,:,:codecinput.shape[2]//16,:codecinput.shape[3]//16] 
-                    lmbda_mask  = torch.zeros(codecinput.shape[0], 1, codecinput.shape[2], codecinput.shape[3], device=device).fill_(lmbda)
-                    out_net = model(codecinput, mask, mask_decoder, roimask)
-                    out_rd = criterion_rd(out_net, codecinput, roimask_binary, torch.tensor([[lmbda]*codecinput.shape[0]]).to(device))
-                    out_criterion = metircs(out_net, codecinput, roimask_binary)
+                    roimask = (1 - roimask_binary) * alpha + roimask_binary
+
+                    # Normalize lambda
+                    lmbda_norm = (np.log(lmbda) - min(np.log(lambda_list))) / (max(np.log(lambda_list)) - min(np.log(lambda_list)))
+                    mask = torch.zeros(codecinput.shape[0], 1, codecinput.shape[2], codecinput.shape[3], device=device).fill_(lmbda_norm)
+                    mask_decoder = mask[:, :, :codecinput.shape[2] // 16, :codecinput.shape[3] // 16] 
+                    lmbda_mask = torch.zeros(codecinput.shape[0], 1, codecinput.shape[2], codecinput.shape[3], device=device).fill_(lmbda)
+
+                    out_net = model(codecinput, mask, mask_decoder, roimask)  # Inference
+                    end = time.time()  # End the timer
+
+                    total_time += (end - start)  # Accumulate total inference time
+                    total_inferences += 1  # Increase inference count
+
+                    # Save generated images
+                    for idx in range(codecinput.shape[0]):  # Loop through the batch
+                        generated_image = out_net['x_hat'][idx].cpu().numpy()  # Get generated image and move to CPU
+                        generated_image = np.clip(generated_image, 0, 1)  # Ensure the values are between 0 and 1
+                        generated_image = (generated_image * 255).astype(np.uint8)  # Convert to uint8 format if necessary
+                        img = Image.fromarray(generated_image)  # Create a PIL Image
+
+                        # Construct a filename, ensuring unique names
+                        img_filename = f"{output_dir}/epoch_{epoch}_alpha_{alpha}_lambda_{lmbda}_image_{total_inferences}.png"
+                        img.save(img_filename)  # Save the image
+
+                    # Calculate losses
+                    out_rd = criterion_rd(out_net, codecinput, roimask_binary, torch.tensor([[lmbda] * codecinput.shape[0]]).to(device))
+                    out_criterion = metrics(out_net, codecinput, roimask_binary)
 
                     bpp_loss.update(out_rd["bpp_loss"])
                     psnr.update(out_rd['psnr'])
@@ -209,11 +246,62 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metircs, stage='test
                     nroipsnr.update(out_criterion['nroi_psnr'].mean())
                     totalloss.update(out_rd['rdloss'])
 
-                txt = f"{alpha} | {n+1} || Bpp loss: {bpp_loss.avg:.4f} | PSNR: {psnr.avg:.5f} "
+                txt = f"{alpha} | {n + 1} || Bpp loss: {bpp_loss.avg:.4f} | PSNR: {psnr.avg:.5f}"
                 print(txt)
                 loss_am_mean.update(loss_am.avg)
+
     model.train()
+
+    # Calculate average inference time
+    average_inference_time = total_time / total_inferences if total_inferences > 0 else 0
+    print(f"Average Inference Time: {average_inference_time:.6f} seconds")
+    
     return loss_am_mean.avg
+
+
+
+# def test_epoch(epoch, test_dataloader, model, criterion_rd, metircs, stage='test'):
+#     model.eval()
+#     device = next(model.parameters()).device
+#     lambda_list = [0.0018, 0.0035, 0.0067, 0.013, 0.025, 0.0483, 0.0932]
+#     alphas = [1]
+#     total_time = 0
+#     for an, alpha in enumerate(alphas):
+#         loss_am_mean = AverageMeter()
+#         with torch.no_grad():
+#             for n, lmbda in enumerate(lambda_list):
+#                 loss_am = AverageMeter()
+#                 bpp_loss = AverageMeter()
+#                 psnr = AverageMeter()
+#                 roipsnr = AverageMeter()
+#                 nroipsnr = AverageMeter()
+#                 totalloss = AverageMeter()
+#                 for i, d in tqdm.tqdm(enumerate(test_dataloader),leave=False, total=len(test_dataloader.dataset)//test_dataloader.batch_size):
+#                     start =time.time()
+#                     codecinput = d.to(device)
+#                     roimask = torch.ones(codecinput.shape[0], codecinput.shape[2], codecinput.shape[3])
+#                     roimask_binary = roimask.unsqueeze(1).to(device)
+#                     roimask = (1-roimask_binary)*alpha + roimask_binary
+#                     lmbda_norm = (np.log(lmbda)-min(np.log(lambda_list)))/(max(np.log(lambda_list))-min(np.log(lambda_list)))
+#                     mask  = torch.zeros(codecinput.shape[0], 1, codecinput.shape[2], codecinput.shape[3], device=device).fill_(lmbda_norm)
+#                     mask_decoder = mask[:,:,:codecinput.shape[2]//16,:codecinput.shape[3]//16] 
+#                     lmbda_mask  = torch.zeros(codecinput.shape[0], 1, codecinput.shape[2], codecinput.shape[3], device=device).fill_(lmbda)
+#                     out_net = model(codecinput, mask, mask_decoder, roimask)
+#                     end = time.time()
+#                     total_time += (end - start)
+#                     out_rd = criterion_rd(out_net, codecinput, roimask_binary, torch.tensor([[lmbda]*codecinput.shape[0]]).to(device))
+#                     out_criterion = metircs(out_net, codecinput, roimask_binary)
+#                     bpp_loss.update(out_rd["bpp_loss"])
+#                     psnr.update(out_rd['psnr'])
+#                     roipsnr.update(out_criterion['roi_psnr'].mean())
+#                     nroipsnr.update(out_criterion['nroi_psnr'].mean())
+#                     totalloss.update(out_rd['rdloss'])
+
+#                 txt = f"{alpha} | {n+1} || Bpp loss: {bpp_loss.avg:.4f} | PSNR: {psnr.avg:.5f} "
+#                 print(txt)
+#                 loss_am_mean.update(loss_am.avg)
+#     model.train()
+#     return loss_am_mean.avg
 
 
 def save_checkpoint(state, is_best, base_dir, filename="checkpoint.pth.tar"):
@@ -288,10 +376,7 @@ def main(argv):
     if args.cuda and torch.cuda.device_count() > 1:
         net = CustomDataParallel(net)
     
-    start = time.time()
     _ = test_epoch(-1, kodak_dataloader, net, rdcriterion, Metrics(),'kodak')
-    end = time.time()
-    print("Average inference time: ", (end - start) / len(kodak_dataloader))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
