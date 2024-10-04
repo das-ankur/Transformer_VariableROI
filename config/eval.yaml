@@ -1,7 +1,7 @@
 model: "tic_promptmodel"
 dataset: "coco"
 dataset_path: '/path/to/COCO/dataset'
-kodak_path: '/kaggle/working/Transformer_VariableROI/raw_images'
+kodak_path: 'raw_images'
 input_resolution: 256
 epochs: 100
 steps: 1200

@@ -366,21 +366,22 @@ def main(argv):
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
     class SortedImageFolder(ImageFolder):
-        def __init__(self, root, split='', transform=None):
-            super(SortedImageFolder, self).__init__(root, split, transform)
+        def __init__(self, root, transform=None):
+            super(SortedImageFolder, self).__init__(root, transform)
             # Sort images by filename
             self.imgs = sorted(self.imgs, key=lambda x: os.path.basename(x[0]))
             self.samples = self.imgs
 
     # Now use SortedImageFolder instead of ImageFolder
-    kodak_dataset = SortedImageFolder(args.kodak_path, split='', transform=transforms.ToTensor())
+    kodak_dataset = SortedImageFolder(args.kodak_path, transform=transforms.ToTensor())
     kodak_dataloader = DataLoader(
         kodak_dataset, 
         batch_size=1, 
         num_workers=args.num_workers, 
         shuffle=False, 
         pin_memory=(device == "cuda")
-    )    
+    )
+        
     net = image_models[args.model](quality=int(args.quality_level), prompt_config=args)
     net = net.to(device)
 
