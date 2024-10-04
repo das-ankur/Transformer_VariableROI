@@ -365,17 +365,22 @@ def main(argv):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
-    kodak_dataset = SortedImageFolder(args.kodak_path, transform=transforms.ToTensor())
+    class SortedImageFolder(ImageFolder):
+        def __init__(self, root, transform=None):
+            super(SortedImageFolder, self).__init__(root, transform)
+            # Sort images by filename
+            self.imgs = sorted(self.imgs, key=lambda x: os.path.basename(x[0]))
+            self.samples = self.imgs
 
-    # Create DataLoader
+    # Now use SortedImageFolder instead of ImageFolder
+    kodak_dataset = SortedImageFolder(args.kodak_path, split='', transform=transforms.ToTensor())
     kodak_dataloader = DataLoader(
-        kodak_dataset,
-        batch_size=1,
-        num_workers=args.num_workers,
-        shuffle=False,  # Keep it False since we want sorted order
-        pin_memory=(device == "cuda"),
-    )
-    
+        kodak_dataset, 
+        batch_size=1, 
+        num_workers=args.num_workers, 
+        shuffle=False, 
+        pin_memory=(device == "cuda")
+    )    
     net = image_models[args.model](quality=int(args.quality_level), prompt_config=args)
     net = net.to(device)
 
