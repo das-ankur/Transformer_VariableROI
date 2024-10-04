@@ -366,8 +366,8 @@ def main(argv):
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
     class SortedImageFolder(ImageFolder):
-        def __init__(self, root, transform=None):
-            super(SortedImageFolder, self).__init__(root, transform)
+        def __init__(self, root, split='', transform=None):
+            super(SortedImageFolder, self).__init__(root, split, transform)
             # Sort images by filename
             self.imgs = sorted(self.imgs, key=lambda x: os.path.basename(x[0]))
             self.samples = self.imgs
