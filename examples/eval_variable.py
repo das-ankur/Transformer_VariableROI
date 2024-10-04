@@ -228,6 +228,7 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     gen_img *= 255
                     gen_img = torch.clamp(gen_img, 0, 255)
                     gen_img = gen_img.to(torch.int).cpu().numpy()
+                    gen_img = gen_img.astype(np.uint8)
                     gen_img = Image.fromarray(gen_img)
                     gen_img.save(os.path.join('compressed_images/000.png'))
                     exit(1)
