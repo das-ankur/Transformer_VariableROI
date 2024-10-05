@@ -330,6 +330,25 @@ def parse_args(argv):
     return args
 
 
+class SortedImageDataset(Dataset):
+    def __init__(self, image_dir, transform=None):
+        self.image_dir = image_dir
+        self.transform = transform
+        
+        # List all files in the directory and sort them by name
+        self.image_filenames = sorted([f for f in os.listdir(image_dir) if f.endswith(('png', 'jpg', 'jpeg'))])
+
+    def __len__(self):
+        return len(self.image_filenames)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.image_dir, self.image_filenames[idx])
+        image = Image.open(img_name).convert("RGB")  # Convert to RGB if needed
+        if self.transform:
+            image = self.transform(image)
+        return image, self.image_filenames[idx]  # Return image and filename
+
+
 def main(argv):
     args = parse_args(argv)
     base_dir = init(args)
@@ -348,8 +367,13 @@ def main(argv):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
 
-    kodak_dataset = ImageFolder(args.kodak_path, split='', transform=transforms.ToTensor()) 
+    # kodak_dataset = ImageFolder(args.kodak_path, split='', transform=transforms.ToTensor()) 
+    # kodak_dataloader = DataLoader(kodak_dataset,batch_size=1,num_workers=args.num_workers,shuffle=False,pin_memory=(device == "cuda"),)
+    kodak_dataset = SortedImageDataset(args.kodak_path, transform=transforms.ToTensor())
     kodak_dataloader = DataLoader(kodak_dataset,batch_size=1,num_workers=args.num_workers,shuffle=False,pin_memory=(device == "cuda"),)
+    for images, filenames in kodak_dataloader:
+        print(filenames)
+    exit(1)
 
     net = image_models[args.model](quality=int(args.quality_level), prompt_config=args)
     net = net.to(device)
