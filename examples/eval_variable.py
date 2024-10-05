@@ -183,7 +183,6 @@ from PIL import Image  # Import the PIL library for saving images
 import time
 
 def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test'):
-    image_count = 0
     model.eval()
     device = next(model.parameters()).device
     lambda_list = [0.0018, 0.0035, 0.0067, 0.013, 0.025, 0.0483, 0.0932]
@@ -195,6 +194,7 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
     os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
 
     for an, alpha in enumerate(alphas):
+        image_count = 0
         loss_am_mean = AverageMeter()
         with torch.no_grad():
             for n, lmbda in enumerate(lambda_list):
@@ -231,7 +231,7 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     gen_img = gen_img.to(torch.int).cpu().numpy()
                     gen_img = gen_img.astype(np.uint8)
                     gen_img = Image.fromarray(gen_img)
-                    gen_img.save(os.path.join(f'compressed_images/{image_count}.png'))
+                    gen_img.save(os.path.join(f'compressed_images/{image_count}_{alpha}.png'))
                     image_count += 1
                     
                     # Calculate losses
