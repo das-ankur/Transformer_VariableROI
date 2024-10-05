@@ -371,9 +371,9 @@ def main(argv):
     # kodak_dataloader = DataLoader(kodak_dataset,batch_size=1,num_workers=args.num_workers,shuffle=False,pin_memory=(device == "cuda"),)
     kodak_dataset = SortedImageDataset(args.kodak_path, transform=transforms.ToTensor())
     kodak_dataloader = DataLoader(kodak_dataset,batch_size=1,num_workers=args.num_workers,shuffle=False,pin_memory=(device == "cuda"),)
-    for images, filenames in kodak_dataloader:
-        print(filenames)
-    exit(1)
+    # for images, filenames in kodak_dataloader:
+    #     print(filenames)
+    # exit(1)
 
     net = image_models[args.model](quality=int(args.quality_level), prompt_config=args)
     net = net.to(device)
