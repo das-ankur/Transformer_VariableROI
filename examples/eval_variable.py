@@ -348,7 +348,7 @@ class SortedImageDataset(Dataset):
         image = Image.open(img_name).convert("RGB")  # Convert to RGB if needed
         if self.transform:
             image = self.transform(image)
-        return image, self.image_filenames[idx]  # Return image and filename
+        return image
 
 
 def main(argv):
