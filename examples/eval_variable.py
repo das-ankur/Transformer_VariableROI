@@ -209,9 +209,9 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     start = time.time()  # Start the timer
 
                     # Prepare your input and masks
-                    codecinput = d.to(device)
                     print(d)
                     exit(1)
+                    codecinput = d.to(device)
                     roimask = torch.ones(codecinput.shape[0], codecinput.shape[2], codecinput.shape[3])
                     roimask_binary = roimask.unsqueeze(1).to(device)
                     roimask = (1 - roimask_binary) * alpha + roimask_binary
