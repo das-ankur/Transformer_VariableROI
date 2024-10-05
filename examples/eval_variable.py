@@ -194,10 +194,10 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
     os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
 
     for an, alpha in enumerate(alphas):
-        image_count = 0
         loss_am_mean = AverageMeter()
         with torch.no_grad():
             for n, lmbda in enumerate(lambda_list):
+                image_count = 0
                 loss_am = AverageMeter()
                 bpp_loss = AverageMeter()
                 psnr = AverageMeter()
@@ -231,7 +231,7 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     gen_img = gen_img.to(torch.int).cpu().numpy()
                     gen_img = gen_img.astype(np.uint8)
                     gen_img = Image.fromarray(gen_img)
-                    gen_img.save(os.path.join(f'compressed_images/{image_count}_{alpha}.png'))
+                    gen_img.save(os.path.join(f'compressed_images/{image_count}_{lmbda}.png'))
                     image_count += 1
                     
                     # Calculate losses
