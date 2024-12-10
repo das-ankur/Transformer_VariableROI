@@ -247,10 +247,10 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     bpp_list.append(out_rd["bpp_loss"].cpu())
                     psnr_list.append(out_rd['psnr'].cpu())
 
-                txt = f"{alpha} | {n + 1} || Bpp loss: {bpp_loss.avg:.4f} | PSNR: {psnr.avg:.5f}\n\n"
+                txt = f"{alpha} | {n + 1} || Bpp loss: {bpp_loss.avg:.4f} | PSNR: {psnr.avg:.5f}"
                 print(txt)
                 loss_am_mean.update(loss_am.avg)
-                metrics_message += f"{alpha} | {lmbda} --> PSNR: {np.mean(psnr_list)}, BPP: {np.mean(bpp_list)}"
+                metrics_message += f"{alpha} | {lmbda} --> PSNR: {np.mean(psnr_list)}, BPP: {np.mean(bpp_list)}\n\n"
 
     model.train()
 
