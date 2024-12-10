@@ -189,14 +189,14 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
     alphas = [1]
     total_time = 0
     total_inferences = 0  # Initialize count of inferences
-    
+    metrics_message = ''
     output_dir = "generated_images"  # Directory to save generated images
     os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
-
     for an, alpha in enumerate(alphas):
         loss_am_mean = AverageMeter()
         with torch.no_grad():
             for n, lmbda in enumerate(lambda_list):
+                bpp_list, psnr_list = [], []
                 image_count = 0
                 loss_am = AverageMeter()
                 bpp_loss = AverageMeter()
@@ -244,15 +244,20 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     nroipsnr.update(out_criterion['nroi_psnr'].mean())
                     totalloss.update(out_rd['rdloss'])
 
+                    bpp_list.append(out_rd["bpp_loss"])
+                    psnr_list.append(out_rd['psnr'])
+
                 txt = f"{alpha} | {n + 1} || Bpp loss: {bpp_loss.avg:.4f} | PSNR: {psnr.avg:.5f}"
                 print(txt)
                 loss_am_mean.update(loss_am.avg)
+                metrics_message += f"{alpha} | {lmbda} --> PSNR: {np.mean(psnr_list)}, BPP: {np.mean(bpp_list)}"
 
     model.train()
 
     # Calculate average inference time
     average_inference_time = total_time / total_inferences if total_inferences > 0 else 0
     print(f"Average Inference Time: {average_inference_time:.6f} seconds")
+    print(metrics_message)
     
     return loss_am_mean.avg
 
