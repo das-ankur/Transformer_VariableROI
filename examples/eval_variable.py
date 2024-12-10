@@ -244,8 +244,8 @@ def test_epoch(epoch, test_dataloader, model, criterion_rd, metrics, stage='test
                     nroipsnr.update(out_criterion['nroi_psnr'].mean())
                     totalloss.update(out_rd['rdloss'])
 
-                    bpp_list.append(out_rd["bpp_loss"])
-                    psnr_list.append(out_rd['psnr'])
+                    bpp_list.append(out_rd["bpp_loss"].cpu())
+                    psnr_list.append(out_rd['psnr'].cpu())
 
                 txt = f"{alpha} | {n + 1} || Bpp loss: {bpp_loss.avg:.4f} | PSNR: {psnr.avg:.5f}"
                 print(txt)
